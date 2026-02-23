@@ -6,6 +6,7 @@ import { router as bookRouter } from "./routes/books.js";
 import { router as likeRouter } from "./routes/likes.js";
 import { router as cartRouter } from "./routes/carts.js";
 import { router as orderRouter } from "./routes/orders.js";
+import { router as categoryRouter } from "./routes/category.js";
 
 const app = express();
 app.listen(process.env.PORT);
@@ -14,6 +15,7 @@ app.use(express.json());
 
 app.use("/auth", userRouter);
 app.use("/books", bookRouter);
+app.use("/category", categoryRouter);
 app.use("/likes", likeRouter);
 app.use("/carts", cartRouter);
 app.use("/orders", orderRouter);
