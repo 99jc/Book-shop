@@ -3,13 +3,22 @@ import { StatusCodes } from "http-status-codes";
 
 export const allBooks = async (req, res) => {
   const { categoryId, news, limit, currentPage } = req.query;
-  const { userId } = req.body;
+  const userId = req.userId;
 
   // 추후에 query가 늘어날 수도 있으므로 WHERE절을 query가 존재하면 추가하는걸로 고도화했다.
-  var sql =
-    "SELECT books.id, books.title, books.img, category.category_name, books.summary, books.author, books.price, books.pub_date, (SELECT count(*) FROM likes WHERE liked_book_id = books.id) AS likes, (SELECT EXISTS (SELECT * FROM likes WHERE user_id = ? AND liked_book_id = books.id)) AS liked FROM books LEFT JOIN category ON books.category_id = category.id";
-  var values = [parseInt(userId)];
+  var values = [];
   var conditions = [];
+  var results;
+
+  const liked_sub_query = userId
+    ? ", (SELECT EXISTS (SELECT * FROM likes WHERE user_id = ? AND liked_book_id = books.id)) AS liked"
+    : "";
+
+  var sql = `SELECT SQL_CALC_FOUND_ROWS books.id, books.title, books.img, category.category_name AS categoryName, books.summary, books.author, books.price, books.pub_date AS pubDate, (SELECT count(*) FROM likes WHERE liked_book_id = books.id) AS likes${liked_sub_query} FROM books LEFT JOIN category ON books.category_id = category.id`;
+
+  if (userId) {
+    values.push(userId);
+  }
 
   // query에 categoryId가 있다면 비교문을 conditions배열에, 값을 values배열에 삽입한다
   if (categoryId) {
@@ -37,9 +46,18 @@ export const allBooks = async (req, res) => {
   }
 
   try {
-    const [results] = await conn.query(sql, values);
+    [results] = await conn.query(sql, values);
     if (results.length) {
-      return res.status(StatusCodes.OK).json(results);
+      const books = results;
+      sql = "SELECT found_rows()";
+      [results] = await conn.query(sql);
+      return res.status(StatusCodes.OK).json({
+        books: books,
+        pagination: {
+          currentPage: parseInt(currentPage),
+          totalCount: results[0]["found_rows()"],
+        },
+      });
     } else {
       return res.status(StatusCodes.NOT_FOUND).json(results);
     }
@@ -51,10 +69,20 @@ export const allBooks = async (req, res) => {
 
 export const bookDetail = async (req, res) => {
   const bookId = parseInt(req.params.bookId);
-  const { userId } = req.body;
-  const sql =
-    "SELECT books.id, books.title, books.img, category.category_name, books.form, books.isbn, books.summary, books.detail, books.author, books.pages, books.contents, books.price, books.pub_date, (SELECT count(*) FROM likes WHERE liked_book_id = books.id) AS likes, (SELECT EXISTS (SELECT * FROM likes WHERE user_id = ? AND liked_book_id = books.id)) AS liked FROM books LEFT JOIN category ON books.category_id = category.id WHERE books.id = ?";
-  const values = [parseInt(userId), bookId];
+  const userId = req.userId;
+  var sql;
+  var values = [];
+
+  const liked_sub_query = userId
+    ? ", (SELECT EXISTS (SELECT * FROM likes WHERE user_id = ? AND liked_book_id = books.id)) AS liked"
+    : "";
+
+  var sql = `SELECT books.id, books.title, books.img, category.category_name AS categoryName, books.summary, books.author, books.price, books.pub_date AS pubDate, (SELECT count(*) FROM likes WHERE liked_book_id = books.id) AS likes${liked_sub_query} FROM books LEFT JOIN category ON books.category_id = category.id WHERE books.id = ?`;
+
+  if (userId) {
+    values.push(userId);
+  }
+  values.push(bookId);
 
   try {
     const [results] = await conn.query(sql, values);

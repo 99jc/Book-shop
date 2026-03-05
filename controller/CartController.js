@@ -1,8 +1,10 @@
 import { connection as conn } from "../mariadb.js";
 import { StatusCodes } from "http-status-codes";
+import "dotenv/config.js";
 
 export const addToCart = async (req, res) => {
-  const { userId, bookId, quantity } = req.body;
+  const { bookId, quantity } = req.body;
+  const userId = req.userId;
 
   const sql =
     "INSERT INTO cartItems (book_id, quantity, user_id) VALUES(?, ?, ?)";
@@ -22,7 +24,8 @@ export const addToCart = async (req, res) => {
 };
 
 export const getCartItems = async (req, res) => {
-  const { userId, selected } = req.body;
+  const { selected } = req.body;
+  const userId = req.userId;
 
   var sql =
     "SELECT cartItems.id, book_id, title, summary, quantity, price FROM cartItems LEFT JOIN books ON cartItems.book_id = books.id WHERE cartItems.user_id = ?";
@@ -49,7 +52,8 @@ export const getCartItems = async (req, res) => {
 
 export const removeCartItem = async (req, res) => {
   const bookId = parseInt(req.params.bookId);
-  const { userId } = req.body;
+  const userId = req.userId;
+
   const sql = "DELETE FROM cartItems WHERE user_id = ? AND book_id = ?";
 
   try {
@@ -58,10 +62,10 @@ export const removeCartItem = async (req, res) => {
     if (results.affectedRows) {
       return res.status(StatusCodes.OK).end();
     } else {
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).end();
+      return res.status(StatusCodes.BAD_REQUEST).end();
     }
   } catch (e) {
     console.log(e);
-    return res.status(StatusCodes.BAD_REQUEST).end();
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).end();
   }
 };

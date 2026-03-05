@@ -2,9 +2,11 @@ import { connection as conn } from "../mariadb.js";
 import { StatusCodes } from "http-status-codes";
 
 export const order = async (req, res) => {
-  const { userId, delivery, items, totalQuantity, totalPrice, firstBookTitle } =
+  const { delivery, items, totalQuantity, totalPrice, firstBookTitle } =
     req.body;
   var sql, values, result;
+
+  const userId = req.userId;
 
   try {
     // items를 가지고, 장바구니에서 book_id, quantity 정보 조회
@@ -62,7 +64,7 @@ const deleteCartItems = async (values) => {
 };
 
 export const getOrders = async (req, res) => {
-  const { userId } = req.body;
+  const userId = req.userId;
 
   try {
     const sql =
